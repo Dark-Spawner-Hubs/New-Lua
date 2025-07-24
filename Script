@@ -1,1 +1,609 @@
-https://raw.githubusercontent.com/Dark-Spawner-Hubs/munki/refs/heads/main/Script
+
+-- SERVICES
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local mouse = player:GetMouse()
+
+-- BUY EVENTS
+local BuySeedEvent = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock")
+local BuyGearEvent = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyGearStock")
+local BuyEggEvent = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg")
+
+-- LISTS
+local gears = {
+"Watering Can", "Recall Wrench", "Trowel", "Basic Sprinkler",
+"Advanced Sprinkler", "Godly Sprinkler", "Master Sprinkler",
+"Medium Toy", "Medium Treat", "Magnifying Glass", "Cleaning Spray",
+"Favorite Tool", "Harvest Tool", "Friendship Pot", "Level Up Lollipop"
+}
+
+local seeds = {
+"Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato",
+"Corn", "Daffodil", "Watermelon", "Pumpkin", "Apple", "Bamboo",
+"Coconut", "Cactus", "Dragon Fruit", "Mango", "Grape", "Mushroom",
+"Pepper", "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple",
+"Burning Bud", "Giant Pinecone"
+}
+
+local eggs = {
+"Common Egg", "Summer Egg", "Rare Summer Egg",
+"Mythical Egg", "Paradise Egg", "Bug Egg"
+}
+
+-- BUY LOOP FUNCTION
+local buyLoopRunning = false
+local function startBuyLoop()
+if buyLoopRunning then return end
+buyLoopRunning = true
+spawn(function()
+while buyLoopRunning do
+for _, gear in ipairs(gears) do BuyGearEvent:FireServer(gear) end
+for _, seed in ipairs(seeds) do BuySeedEvent:FireServer(seed) end
+for _, egg in ipairs(eggs) do BuyEggEvent:FireServer(egg) end
+task.wait(0.1)
+end
+end)
+end
+
+local function stopBuyLoop()
+buyLoopRunning = false
+end
+
+-- SERVICES
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local mouse = player:GetMouse()
+
+-- VARIABLES
+local mutations = {
+"Shiny", "Inverted", "Frozen", "Windy", "Golden", "Mega", "Tiny",
+"Tranquil", "IronSkin", "Radiant", "Rainbow", "Shocked", "Ascended"
+}
+local currentMutation = mutations[math.random(#mutations)]
+local espVisible = true
+local espEnabled = false
+local truePetMap = {}
+
+local rainbowPets = {
+["Spinosaurus"] = true, ["T-Rex"] = true, ["Kitsune"] = true, ["Dragonfly"] = true,
+["Mimic Octopus"] = true, ["Queen Bee"] = true, ["Butterfly"] = true,
+["Disco Bee"] = true, ["Raccoon"] = true,
+}
+
+local petTable = {
+["Common Egg"] = { "Dog", "Bunny", "Golden Lab" },
+["Uncommon Egg"] = { "Chicken", "Black Bunny", "Cat", "Deer" },
+["Rare Egg"] = { "Pig", "Monkey", "Rooster", "Orange Tabby", "Spotted Deer" },
+["Legendary Egg"] = { "Cow", "Polar Bear", "Sea Otter", "Turtle", "Silver Monkey" },
+["Mythical Egg"] = { "Grey Mouse", "Brown Mouse", "Squirrel", "Red Giant Ant" },
+["Bug Egg"] = { "Snail", "Caterpillar", "Giant Ant", "Praying Mantis", "Dragonfly" },
+["Night Egg"] = { "Frog", "Hedgehog", "Mole", "Echo Frog", "Night Owl", "Raccoon" },
+["Bee Egg"] = { "Bee", "Honey Bee", "Bear Bee", "Petal Bee", "Queen Bee" },
+["Anti Bee Egg"] = { "Wasp", "Moth", "Tarantula Hawk", "Butterfly", "Disco Bee" },
+["Oasis Egg"] = { "Meerkat", "Sand Snake", "Axolotl" },
+["Paradise Egg"] = { "Ostrich", "Peacock", "Capybara", "Mimic Octopus" },
+["Dinosaur Egg"] = { "Raptor", "Triceratops", "Stegosaurus", "T-Rex" },
+["Primal Egg"] = { "Parasaurolophus", "Iguanodon", "Pachycephalosaurus", "Dilophosaurus", "Ankylosaurus", "Spinosaurus" },
+["Zen Egg"] = { "Shiba Inu", "Nihonzaru", "Tanuki", "Tanchozuru", "Kappa", "Kitsune" },
+}
+
+-- GUI INIT
+local gui = Instance.new("ScreenGui", PlayerGui)
+gui.Name = "FeatureHubGUI"
+gui.ResetOnSpawn = false
+
+-- TOGGLE BUTTON
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 65, 0, 65)
+toggleBtn.Position = UDim2.new(0, 20, 0, 150)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+toggleBtn.Text = "VC"
+toggleBtn.Font = Enum.Font.GothamBlack
+toggleBtn.TextSize = 22
+toggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+toggleBtn.Draggable = true
+toggleBtn.AutoButtonColor = true
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Parent = gui
+
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", toggleBtn).Color = Color3.new(0, 0, 0)
+
+-- FRAME/BTN FUNCTIONS
+local function createFrame(name, titleText)
+local frame = Instance.new("Frame")
+frame.Name = name
+frame.Size = UDim2.new(0, 400, 0, 360)
+frame.Position = UDim2.new(0.35, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+frame.BorderSizePixel = 2
+frame.BorderColor3 = Color3.fromRGB(80, 80, 90)
+frame.Active = true
+frame.Draggable = true
+frame.Visible = false
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", frame).Color = Color3.fromRGB(100, 100, 110)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = titleText
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+
+return frame
+
+end
+
+local function createButton(text, posY, parent, color)
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0.9, 0, 0, 35)
+btn.Position = UDim2.new(0.05, 0, 0, posY)
+btn.BackgroundColor3 = color or Color3.fromRGB(180, 180, 255)
+btn.Text = text
+btn.Font = Enum.Font.GothamMedium
+btn.TextSize = 16
+btn.TextColor3 = Color3.new(0, 0, 0)
+btn.AutoButtonColor = false
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", btn).Color = Color3.new(0, 0, 0)
+btn.Parent = parent
+return btn
+end
+
+-- MAIN MENU
+local mainMenu = createFrame("MainMenu", "V_C Hub")
+mainMenu.Visible = true
+local btnPetAge = createButton(" Set Pet Age", 50, mainMenu, Color3.fromRGB(255, 180, 180))
+local btnMutation = createButton("Mutation Finder", 100, mainMenu, Color3.fromRGB(180, 255, 180))
+local btnPetESP = createButton(" Pet ESP", 150, mainMenu, Color3.fromRGB(255, 220, 160))
+local btnToolDupe = createButton(" Tool Dupe", 200, mainMenu, Color3.fromRGB(210, 180, 255))
+
+-- TOOL DUPE
+local dupeStatus = Instance.new("TextLabel", mainMenu)
+dupeStatus.Size = UDim2.new(1, -10, 0, 20)
+dupeStatus.Position = UDim2.new(0, 5, 1, -25)
+dupeStatus.BackgroundTransparency = 1
+dupeStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+dupeStatus.Font = Enum.Font.Gotham
+dupeStatus.TextSize = 13
+dupeStatus.Text = ""
+
+btnToolDupe.MouseButton1Click:Connect(function()
+local character = player.Character or player.CharacterAdded:Wait()
+local tool = character:FindFirstChildOfClass("Tool")
+if tool then
+local clone = tool:Clone()
+clone.Parent = player.Backpack
+dupeStatus.Text = "âœ… Cloned: " .. tool.Name
+else
+dupeStatus.Text = "âŒ No equipped tool found!"
+end
+task.wait(2)
+dupeStatus.Text = ""
+end)
+
+-- PET AGE UI
+local ageFrame = createFrame("PetAgeUI", " Pet Age Setter")
+local backFromAge = createButton(" Back", 180, ageFrame)
+local btnSetAge = createButton("Set Equipped Pet to Age 50", 70, ageFrame, Color3.fromRGB(255, 160, 160))
+
+local ageStatus = Instance.new("TextLabel", ageFrame)
+ageStatus.Size = UDim2.new(1, -10, 0, 20)
+ageStatus.Position = UDim2.new(0, 5, 1, -25)
+ageStatus.BackgroundTransparency = 1
+ageStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+ageStatus.Font = Enum.Font.Gotham
+ageStatus.TextSize = 13
+ageStatus.Text = ""
+
+btnSetAge.MouseButton1Click:Connect(function()
+local found = false
+for _, desc in pairs(PlayerGui:GetDescendants()) do
+if desc:IsA("TextLabel") and desc.Text:match("%[Age %d+%]") then
+if not desc.Text:find("%[Age 50%]") then
+desc.Text = desc.Text:gsub("%[Age %d+%]", "[Age 50]")
+found = true
+break
+end
+end
+end
+ageStatus.Text = found and "âœ… Age set to 50!" or "âš ï¸ No pet found."
+task.wait(2)
+ageStatus.Text = ""
+end)
+
+-- MUTATION UI
+local mutationFrame = createFrame("MutationFinder", " Mutation Finder")
+local backFromMut = createButton("Back", 180, mutationFrame)
+local rerollBtn = createButton("ðŸŽ² Reroll Mutation", 70, mutationFrame, Color3.fromRGB(140, 200, 255))
+local toggleESPBtn = createButton("ðŸ‘ Toggle ESP", 120, mutationFrame, Color3.fromRGB(180, 255, 180))
+
+local function findMachine()
+for _, obj in pairs(Workspace:GetDescendants()) do
+if obj:IsA("Model") and obj.Name:lower():find("mutation") then
+return obj
+end
+end
+end
+
+local basePart
+local machine = findMachine()
+if machine then
+basePart = machine:FindFirstChildWhichIsA("BasePart")
+end
+
+local espLabel
+if basePart then
+local espGui = Instance.new("BillboardGui", basePart)
+espGui.Name = "MutationESP"
+espGui.Adornee = basePart
+espGui.Size = UDim2.new(0, 200, 0, 40)
+espGui.StudsOffset = Vector3.new(0, 3, 0)
+espGui.AlwaysOnTop = true
+espLabel = Instance.new("TextLabel", espGui)
+espLabel.Size = UDim2.new(1, 0, 1, 0)
+espLabel.BackgroundTransparency = 1
+espLabel.Font = Enum.Font.GothamBold
+espLabel.TextSize = 24
+espLabel.TextStrokeTransparency = 0.3
+espLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+espLabel.Text = currentMutation
+espLabel.TextColor3 = Color3.fromHSV(math.random(), 1, 1)
+espGui.Parent = basePart
+
+RunService.RenderStepped:Connect(function()
+if espVisible and espLabel then
+local hue = tick() % 5 / 5
+espLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+end
+end)
+
+rerollBtn.MouseButton1Click:Connect(function()
+rerollBtn.Text = "â³ Rerolling..."
+for _ = 1, 20 do
+espLabel.Text = mutations[math.random(#mutations)]
+task.wait(0.05)
+end
+currentMutation = mutations[math.random(#mutations)]
+espLabel.Text = currentMutation
+rerollBtn.Text = "ðŸŽ² Reroll Mutation"
+end)
+
+toggleESPBtn.MouseButton1Click:Connect(function()
+espVisible = not espVisible
+espLabel.Visible = espVisible
+end)
+
+end
+
+-- PET ESP UI
+local petESPFrame = createFrame("PetESPUI", " Pet ESP")
+local backFromESP = createButton("ðŸ”™ Back", 180, petESPFrame)
+local toggleESPBtn2 = createButton("ðŸ‘ï¸ ESP: OFF", 70, petESPFrame)
+local randomizeBtn = createButton("ðŸŽ² Randomize Pets", 120, petESPFrame, Color3.fromRGB(255, 170, 100))
+
+local function rainbowColor()
+local hue = (tick()) % 5 / 5
+return Color3.fromHSV(hue, 1, 1)
+end
+
+local function applyESP(egg, petName)
+local part = egg:FindFirstChildWhichIsA("BasePart")
+if not part then return end
+
+local gui = Instance.new("BillboardGui", part)
+gui.Name = "PetESP"
+gui.Size = UDim2.new(0, 220, 0, 40)
+gui.StudsOffset = Vector3.new(0, 4, 0)
+gui.AlwaysOnTop = true
+
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(1, 0, 1, 0)
+label.BackgroundTransparency = 1
+label.Text = egg.Name .. " | " .. petName
+label.TextScaled = true
+label.Font = Enum.Font.FredokaOne
+
+if rainbowPets[petName] then
+spawn(function()
+while label and label.Parent do
+label.TextColor3 = rainbowColor()
+task.wait(0.1)
+end
+end)
+else
+label.TextColor3 = Color3.new(1, 1, 1)
+end
+
+gui.Parent = part
+
+end
+
+local function removeESP(egg)
+local part = egg:FindFirstChildWhichIsA("BasePart")
+if part then
+local gui = part:FindFirstChild("PetESP")
+if gui then gui:Destroy() end
+end
+end
+
+local function getNearbyEggs(radius)
+local eggs = {}
+local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+if not root then return {} end
+for _, model in pairs(Workspace:GetDescendants()) do
+if model:IsA("Model") and petTable[model.Name] then
+local part = model:FindFirstChildWhichIsA("BasePart")
+if part and (part.Position - root.Position).Magnitude <= radius then
+if not truePetMap[model] then
+local pets = petTable[model.Name]
+truePetMap[model] = pets[math.random(1, #pets)]
+end
+table.insert(eggs, model)
+end
+end
+end
+return eggs
+end
+
+local function updateESP()
+for _, egg in pairs(getNearbyEggs(60)) do
+removeESP(egg)
+if espEnabled then
+applyESP(egg, truePetMap[egg])
+end
+end
+end
+
+toggleESPBtn2.MouseButton1Click:Connect(function()
+espEnabled = not espEnabled
+toggleESPBtn2.Text = espEnabled and "ðŸ‘ï¸ ESP: ON" or "ðŸ‘ï¸ ESP: OFF"
+updateESP()
+end)
+
+randomizeBtn.MouseButton1Click:Connect(function()
+for _, egg in pairs(getNearbyEggs(60)) do
+local pets = petTable[egg.Name]
+truePetMap[egg] = pets[math.random(1, #pets)]
+end
+updateESP()
+end)
+
+-- NAVIGATION
+btnPetAge.MouseButton1Click:Connect(function()
+mainMenu.Visible = false
+ageFrame.Visible = true
+end)
+
+btnMutation.MouseButton1Click:Connect(function()
+mainMenu.Visible = false
+mutationFrame.Visible = true
+end)
+
+btnPetESP.MouseButton1Click:Connect(function()
+mainMenu.Visible = false
+petESPFrame.Visible = true
+end)
+
+backFromAge.MouseButton1Click:Connect(function()
+ageFrame.Visible = false
+mainMenu.Visible = true
+end)
+
+backFromMut.MouseButton1Click:Connect(function()
+mutationFrame.Visible = false
+mainMenu.Visible = true
+end)
+
+backFromESP.MouseButton1Click:Connect(function()
+petESPFrame.Visible = false
+mainMenu.Visible = true
+end)
+
+-- TOGGLE GUI
+toggleBtn.MouseButton1Click:Connect(function()
+mainMenu.Visible = not mainMenu.Visible
+end)
+
+updateESP()
+
+-- Add Buy All Items Button to Main Menu
+local btnBuyAll = createButton("ðŸ›’ Buy Egg Shop, Seed Shop, Gear Shop All", 250, mainMenu, Color3.fromRGB(160, 255, 180))
+
+local buyStatus = Instance.new("TextLabel", mainMenu)
+buyStatus.Size = UDim2.new(1, -10, 0, 20)
+buyStatus.Position = UDim2.new(0, 5, 1, -50)
+buyStatus.BackgroundTransparency = 1
+buyStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+buyStatus.Font = Enum.Font.Gotham
+buyStatus.TextSize = 13
+buyStatus.Text = ""
+
+btnBuyAll.MouseButton1Click:Connect(function()
+if not buyLoopRunning then
+startBuyLoop()
+buyStatus.Text = "âœ… Buying items..."
+btnBuyAll.Text = "ðŸ›‘ Stop Buying"
+else
+stopBuyLoop()
+buyStatus.Text = "â›”ï¸ Buy loop stopped."
+btnBuyAll.Text = " Buy Egg Shop, Seed Shop,Gear Shop All"
+end
+task.wait(2)
+buyStatus.Text = ""
+end)
+local btnSeedSpinner = createButton(" Spin Seed Pack", 300, mainMenu, Color3.fromRGB(255, 255, 140))
+
+-- SEED SPINNER UI
+local seedFrame = createFrame("SeedSpinnerUI", " Seed Spinner")
+local backFromSeed = createButton("ðŸ”™ Back", 260, seedFrame)
+
+local packSelector = Instance.new("TextButton", seedFrame)
+packSelector.Size = UDim2.new(1, -20, 0, 30)
+packSelector.Position = UDim2.new(0, 10, 0, 10)
+packSelector.Text = "Select Seed Pack"
+packSelector.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+packSelector.TextColor3 = Color3.new(1, 1, 1)
+packSelector.Font = Enum.Font.Gotham
+packSelector.TextScaled = true
+packSelector.Parent = seedFrame
+Instance.new("UICorner", packSelector).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", packSelector).Color = Color3.new(0, 0, 0)
+
+local dropdownFrame = Instance.new("ScrollingFrame", seedFrame)
+dropdownFrame.Size = UDim2.new(1, -20, 0, 100)
+dropdownFrame.Position = UDim2.new(0, 10, 0, 45)
+dropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+dropdownFrame.Visible = false
+dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+dropdownFrame.ScrollBarThickness = 6
+dropdownFrame.BorderSizePixel = 0
+Instance.new("UICorner", dropdownFrame).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", dropdownFrame).Color = Color3.new(0, 0, 0)
+
+local seedInput = Instance.new("TextBox", seedFrame)
+seedInput.Size = UDim2.new(1, -20, 0, 30)
+seedInput.Position = UDim2.new(0, 10, 0, 155)
+seedInput.PlaceholderText = "Enter Seed Name"
+seedInput.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+seedInput.TextColor3 = Color3.new(1, 1, 1)
+seedInput.Font = Enum.Font.Gotham
+seedInput.TextScaled = true
+seedInput.Parent = seedFrame
+Instance.new("UICorner", seedInput).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", seedInput).Color = Color3.new(0, 0, 0)
+
+seedInput.FocusLost:Connect(function()
+	local words = {}
+	for word in seedInput.Text:gmatch("%S+") do
+		table.insert(words, word:sub(1, 1):upper() .. word:sub(2):lower())
+	end
+	seedInput.Text = table.concat(words, " ")
+end)
+
+local spinButton = Instance.new("TextButton", seedFrame)
+spinButton.Size = UDim2.new(1, -20, 0, 32)
+spinButton.Position = UDim2.new(0, 10, 0, 195)
+spinButton.Text = "Spin Pack"
+spinButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+spinButton.TextColor3 = Color3.new(1, 1, 1)
+spinButton.Font = Enum.Font.GothamBold
+spinButton.TextScaled = true
+spinButton.Parent = seedFrame
+Instance.new("UICorner", spinButton).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", spinButton).Color = Color3.new(0, 0, 0)
+
+local statusLabel = Instance.new("TextLabel", seedFrame)
+statusLabel.Size = UDim2.new(1, -20, 0, 20)
+statusLabel.Position = UDim2.new(0, 10, 0, 230)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.Text = ""
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = seedFrame
+
+local selectedPack = nil
+local SeedPackController = require(ReplicatedStorage.Modules.SeedPackController)
+local SeedPackData = require(ReplicatedStorage.Data.SeedPackData)
+
+-- Build Dropdown Options
+local packNames = {}
+for name, _ in pairs(SeedPackData.Packs) do
+	table.insert(packNames, name)
+end
+table.sort(packNames)
+
+local optionHeight = 25
+dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, #packNames * optionHeight)
+
+for i, packName in ipairs(packNames) do
+	local option = Instance.new("TextButton", dropdownFrame)
+	option.Size = UDim2.new(1, 0, 0, optionHeight)
+	option.Position = UDim2.new(0, 0, 0, (i - 1) * optionHeight)
+	option.Text = packName
+	option.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	option.TextColor3 = Color3.new(1, 1, 1)
+	option.BorderSizePixel = 0
+	option.Font = Enum.Font.Gotham
+	option.TextScaled = true
+	option.Parent = dropdownFrame
+
+	option.MouseButton1Click:Connect(function()
+		selectedPack = packName
+		packSelector.Text = packName
+		dropdownFrame.Visible = false
+	end)
+end
+
+packSelector.MouseButton1Click:Connect(function()
+	dropdownFrame.Visible = not dropdownFrame.Visible
+end)
+
+-- Spin Logic
+local function spinSeedPack()
+	if not selectedPack then
+		statusLabel.Text = "âš ï¸ Select a seed pack first."
+		return
+	end
+
+	local seedName = seedInput.Text
+	if seedName == "" then
+		statusLabel.Text = "âš ï¸ Enter a seed name."
+		return
+	end
+
+	local pack = SeedPackData.Packs[selectedPack]
+	if not pack or not pack.Items then
+		statusLabel.Text = "âŒ Invalid pack data."
+		return
+	end
+
+	local index = nil
+	for i, item in ipairs(pack.Items) do
+		if item.Name == seedName or item.RewardId == seedName then
+			index = i
+			break
+		end
+	end
+
+	if not index then
+		statusLabel.Text = "âŒ Seed not found in pack."
+		return
+	end
+
+	SeedPackController:Spin({
+		seedPackType = selectedPack,
+		resultIndex = index
+	})
+
+	statusLabel.Text = "ðŸŒ± Spinning: " .. seedName
+end
+
+spinButton.MouseButton1Click:Connect(spinSeedPack)
+
+-- Navigation
+btnSeedSpinner.MouseButton1Click:Connect(function()
+	mainMenu.Visible = false
+	seedFrame.Visible = true
+end)
+
+backFromSeed.MouseButton1Click:Connect(function()
+	seedFrame.Visible = false
+	mainMenu.Visible = true
+end)
